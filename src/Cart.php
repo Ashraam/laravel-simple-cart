@@ -4,14 +4,17 @@ namespace Ashraam\LaravelSimpleCart;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Config;
 
 class Cart
 {
     protected Collection $items;
+    protected string $sessionKey;
 
     public function __construct()
     {
-        $this->items = collect(Session::get(config('laravelsimplecart.session_key'), []));
+        $this->sessionKey = Config::get('laravelsimplecart.session_key');
+        $this->items = collect(Session::get($this->sessionKey, []));
     }
 
     /**
@@ -133,6 +136,6 @@ class Cart
      */
     protected function save(): void
     {
-        Session::put(config('laravelsimplecart.session_key'), $this->items->toArray());
+        Session::put($this->sessionKey, $this->items->toArray());
     }
 }

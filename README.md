@@ -2,7 +2,6 @@
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/ashraam/laravelsimplecart.svg?style=flat-square)](https://packagist.org/packages/ashraam/laravelsimplecart)
 [![Total Downloads](https://img.shields.io/packagist/dt/ashraam/laravelsimplecart.svg?style=flat-square)](https://packagist.org/packages/ashraam/laravelsimplecart)
-![GitHub Actions](https://github.com/ashraam/laravelsimplecart/actions/workflows/main.yml/badge.svg)
 
 A simple session-based shopping cart implementation for Laravel 12. This package provides an easy way to add shopping cart functionality to your Laravel application without the need for a database.
 
