@@ -1,0 +1,43 @@
+{
+    "name": "ashraam/laravelsimplecart",
+    "description": "Simple session based cart for Laravel 12",
+    "keywords": [
+        "ashraam",
+        "laravelsimplecart"
+    ],
+    "homepage": "https://github.com/ashraam/laravelsimplecart",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Romain BERTOLUCCI",
+            "email": "romain.bertolucci@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^12.0",
+        "illuminate/session": "^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ashraam\\LaravelSimpleCart\\": "src"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Ashraam\\LaravelSimpleCart\\LaravelSimpleCartServiceProvider"
+            ],
+            "aliases": {
+                "Cart": "Ashraam\\LaravelSimpleCart\\Facades\\Cart"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
