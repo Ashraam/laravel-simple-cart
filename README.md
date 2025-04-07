@@ -36,13 +36,42 @@ Cart::update('item-id', 3);
 // Remove item
 Cart::remove('item-id');
 
-// Clear cart
+// Clear cart (including fees and discounts)
 Cart::clear();
 
 // Get cart contents
 $items = Cart::content();
 
-// Get cart total
+// Get subtotal (items only)
+$subtotal = Cart::subtotal();
+
+// Add fees
+Cart::addFee('shipping', 10.00);
+Cart::addFee('handling', 5.00);
+
+// Remove fees
+Cart::removeFee('shipping');
+
+// Get all fees
+$fees = Cart::getFees();
+
+// Get total fees
+$totalFees = Cart::totalFees();
+
+// Add discounts
+Cart::addDiscount('SUMMER10', 10.00);
+Cart::addDiscount('WELCOME5', 5.00);
+
+// Remove discounts
+Cart::removeDiscount('SUMMER10');
+
+// Get all discounts
+$discounts = Cart::getDiscounts();
+
+// Get total discounts
+$totalDiscounts = Cart::totalDiscounts();
+
+// Get cart total (subtotal + fees - discounts)
 $total = Cart::total();
 
 // Get number of items in cart
@@ -65,7 +94,7 @@ When retrieving an item using `Cart::get()`, the returned array will have this s
     'id' => 'product-1',      // Original product ID
     'name' => 'Product Name', // Product name
     'price' => 29.99,        // Product price
-    'quantity' => 2,         // Quantity in cart©©
+    'quantity' => 2,         // Quantity in cart
     'options' => [           // Options (used with the product id to generate the unique item hash id)
         'size' => 'L'
     ],
@@ -75,6 +104,39 @@ When retrieving an item using `Cart::get()`, the returned array will have this s
     ]
 ]
 ```
+
+### Price Calculations
+
+The cart provides several methods to calculate prices:
+
+1. `subtotal()`: Returns the sum of all items (price × quantity)
+2. `totalFees()`: Returns the sum of all added fees
+3. `totalDiscounts()`: Returns the sum of all added discounts
+4. `total()`: Returns the final total calculated as: subtotal + fees - discounts
+
+### Managing Fees and Discounts
+
+Fees and discounts are stored separately from items and persist until explicitly removed or the cart is cleared.
+
+```php
+// Adding fees
+Cart::addFee('shipping', 10.00);
+Cart::addFee('handling', 5.00);
+
+// Adding discounts
+Cart::addDiscount('SUMMER10', 10.00);
+Cart::addDiscount('WELCOME5', 5.00);
+
+// Removing fees/discounts
+Cart::removeFee('shipping');
+Cart::removeDiscount('SUMMER10');
+
+// Getting all fees/discounts
+$fees = Cart::getFees(); // Returns Collection of fees
+$discounts = Cart::getDiscounts(); // Returns Collection of discounts
+```
+
+Each fee and discount is stored with a name and amount. The name is used as a unique identifier when removing the fee or discount.
 
 ### Configuration
 

@@ -9,12 +9,16 @@ use Illuminate\Support\Facades\Config;
 class Cart
 {
     protected Collection $items;
+    protected Collection $fees;
+    protected Collection $discounts;
     protected string $sessionKey;
 
     public function __construct()
     {
         $this->sessionKey = Config::get('laravelsimplecart.session_key');
-        $this->items = collect(Session::get($this->sessionKey, []));
+        $this->items = collect(Session::get($this->sessionKey . '.items', []));
+        $this->fees = collect(Session::get($this->sessionKey . '.fees', []));
+        $this->discounts = collect(Session::get($this->sessionKey . '.discounts', []));
     }
 
     /**
@@ -70,15 +74,6 @@ class Cart
     }
 
     /**
-     * Clear the cart
-     */
-    public function clear(): void
-    {
-        $this->items = collect();
-        $this->save();
-    }
-
-    /**
      * Get cart contents
      */
     public function content(): Collection
@@ -87,9 +82,9 @@ class Cart
     }
 
     /**
-     * Get cart total
+     * Get cart subtotal (sum of items without fees and discounts)
      */
-    public function total(): float
+    public function subtotal(): float
     {
         return $this->items->sum(function ($item) {
             return $item['price'] * $item['quantity'];
@@ -97,11 +92,85 @@ class Cart
     }
 
     /**
-     * Get total number of items in cart
+     * Get total fees
      */
-    public function count(): int
+    public function totalFees(): float
     {
-        return $this->items->sum('quantity');
+        return $this->fees->sum('amount');
+    }
+
+    /**
+     * Get total discounts
+     */
+    public function totalDiscounts(): float
+    {
+        return $this->discounts->sum('amount');
+    }
+
+    /**
+     * Get cart total including fees and discounts
+     */
+    public function total(): float
+    {
+        return $this->subtotal() + $this->totalFees() - $this->totalDiscounts();
+    }
+
+    /**
+     * Add a fee to the cart
+     */
+    public function addFee(string $name, float $amount): void
+    {
+        $this->fees->put(md5($name), [
+            'name' => $name,
+            'amount' => $amount
+        ]);
+        $this->save();
+    }
+
+    /**
+     * Remove a fee from the cart
+     */
+    public function removeFee(string $name): void
+    {
+        $this->fees->forget(md5($name));
+        $this->save();
+    }
+
+    /**
+     * Add a discount to the cart
+     */
+    public function addDiscount(string $name, float $amount): void
+    {
+        $this->discounts->put(md5($name), [
+            'name' => $name,
+            'amount' => $amount
+        ]);
+        $this->save();
+    }
+
+    /**
+     * Remove a discount from the cart
+     */
+    public function removeDiscount(string $name): void
+    {
+        $this->discounts->forget(md5($name));
+        $this->save();
+    }
+
+    /**
+     * Get all fees
+     */
+    public function getFees(): Collection
+    {
+        return $this->fees;
+    }
+
+    /**
+     * Get all discounts
+     */
+    public function getDiscounts(): Collection
+    {
+        return $this->discounts;
     }
 
     /**
@@ -124,6 +193,25 @@ class Cart
     }
 
     /**
+     * Clear the cart
+     */
+    public function clear(): void
+    {
+        $this->items = collect();
+        $this->fees = collect();
+        $this->discounts = collect();
+        $this->save();
+    }
+
+    /**
+     * Get total number of items in cart
+     */
+    public function count(): int
+    {
+        return $this->items->sum('quantity');
+    }
+
+    /**
      * Generate a unique ID for cart item
      */
     protected function generateItemId(string $id, array $options): string
@@ -136,6 +224,8 @@ class Cart
      */
     protected function save(): void
     {
-        Session::put($this->sessionKey, $this->items->toArray());
+        Session::put($this->sessionKey . '.items', $this->items->toArray());
+        Session::put($this->sessionKey . '.fees', $this->fees->toArray());
+        Session::put($this->sessionKey . '.discounts', $this->discounts->toArray());
     }
 }
