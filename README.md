@@ -120,11 +120,11 @@ Fees and discounts are stored separately from items and persist until explicitly
 
 ```php
 // Adding fees
-Cart::addFee('shipping', 10.00);
+Cart::addFee('shipping', 10.00, 'optional description');
 Cart::addFee('handling', 5.00);
 
 // Adding discounts
-Cart::addDiscount('SUMMER10', 10.00);
+Cart::addDiscount('SUMMER10', 10.00, 'optional description');
 Cart::addDiscount('WELCOME5', 5.00);
 
 // Removing fees/discounts

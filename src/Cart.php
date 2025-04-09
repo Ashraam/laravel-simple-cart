@@ -118,10 +118,11 @@ class Cart
     /**
      * Add a fee to the cart
      */
-    public function addFee(string $name, float $amount): void
+    public function addFee(string $name, float $amount, ?string $description = null): void
     {
         $this->fees->put(md5($name), [
             'name' => $name,
+            'description' => $description,
             'amount' => $amount
         ]);
         $this->save();
@@ -139,10 +140,11 @@ class Cart
     /**
      * Add a discount to the cart
      */
-    public function addDiscount(string $name, float $amount): void
+    public function addDiscount(string $name, float $amount, ?string $description = null): void
     {
         $this->discounts->put(md5($name), [
             'name' => $name,
+            'description' => $description,
             'amount' => $amount
         ]);
         $this->save();
