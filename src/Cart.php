@@ -211,6 +211,28 @@ class Cart
     }
 
     /**
+     * Get a specific discount from the cart
+     *
+     * @param string $name The name of the discount to retrieve
+     * @return array|null The discount if found, null otherwise
+     */
+    public function getDiscount(string $name): ?array
+    {
+        return $this->discounts->get(md5($name));
+    }
+
+    /**
+     * Get a specific fee from the cart
+     *
+     * @param string $name The name of the fee to retrieve
+     * @return array|null The fee if found, null otherwise
+     */
+    public function getFee(string $name): ?array
+    {
+        return $this->fees->get(md5($name));
+    }
+
+    /**
      * Clear the cart
      */
     public function clear(): void

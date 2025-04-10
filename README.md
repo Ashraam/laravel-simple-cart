@@ -59,6 +59,9 @@ Cart::removeFee('shipping');
 // Get all fees
 $fees = Cart::getFees();
 
+// Get a specific fee
+$fee =  Cart::getFee('shipping');
+
 // Get total fees
 $totalFees = Cart::totalFees();
 
@@ -75,6 +78,9 @@ Cart::removeDiscount('SUMMER10');
 
 // Get all discounts
 $discounts = Cart::getDiscounts();
+
+// Get a specific discount
+$discount = Cart::getDiscount('SUMMER10');
 
 // Get total discounts
 $totalDiscounts = Cart::totalDiscounts();
