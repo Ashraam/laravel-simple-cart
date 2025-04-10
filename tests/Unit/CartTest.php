@@ -159,6 +159,28 @@ test('can check if item exists', function () {
         ->and($cart->has('non-existent'))->toBeFalse();
 });
 
+test('can check if fee exists', function () {
+    // Arrange
+    Session::shouldReceive('put')->times(3);
+    $cart = new Cart();
+    $cart->addFee('delivery', 15, 'Delivery fee');
+
+    // Assert
+    expect($cart->hasFee('delivery'))->toBeTrue()
+        ->and($cart->hasFee('non-existent'))->toBeFalse();
+});
+
+test('can check if discount exists', function () {
+    // Arrange
+    Session::shouldReceive('put')->times(3);
+    $cart = new Cart();
+    $cart->addDiscount('summer10', 15, 'Summer discount');
+
+    // Assert
+    expect($cart->hasDiscount('summer10'))->toBeTrue()
+        ->and($cart->hasDiscount('non-existent'))->toBeFalse();
+});
+
 test('generates unique item id based on options', function () {
     // Arrange
     Session::shouldReceive('put')->times(5);

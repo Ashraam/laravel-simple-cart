@@ -49,6 +49,10 @@ $subtotal = Cart::subtotal();
 Cart::addFee('shipping', 10.00);
 Cart::addFee('handling', 5.00);
 
+// Check if fees exists
+Cart::hasFee('shipping'); // true
+Cart::hasFee('non-existant'); // false
+
 // Remove fees
 Cart::removeFee('shipping');
 
@@ -61,6 +65,10 @@ $totalFees = Cart::totalFees();
 // Add discounts
 Cart::addDiscount('SUMMER10', 10.00);
 Cart::addDiscount('WELCOME5', 5.00);
+
+// Check if discount exists
+Cart::hasDiscount('SUMMER10'); // true
+Cart::hasDiscount('non-existant'); // false
 
 // Remove discounts
 Cart::removeDiscount('SUMMER10');
