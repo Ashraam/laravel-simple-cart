@@ -313,3 +313,30 @@ test('clear removes items, fees, and discounts', function () {
         ->and($cart->getDiscounts()->isEmpty())->toBeTrue()
         ->and($cart->total())->toBe(0.0);
 });
+
+
+test('can get a specific discount', function () {
+    // Arrange
+    Session::shouldReceive('put')->times(3);
+    $cart = new Cart();
+
+    // Act
+    $cart->addDiscount('SUMMER10', 20.00);
+
+    // Assert
+    expect($cart->getDiscount('SUMMER10'))->toBeArray()
+        ->and($cart->getDiscount('non-existant'))->toBeNull();
+});
+
+test('can get a specific fee', function () {
+    // Arrange
+    Session::shouldReceive('put')->times(3);
+    $cart = new Cart();
+
+    // Act
+    $cart->addFee('shipping', 20.00);
+
+    // Assert
+    expect($cart->getFee('shipping'))->toBeArray()
+        ->and($cart->getFee('non-existant'))->toBeNull();
+});
