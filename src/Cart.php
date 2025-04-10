@@ -184,6 +184,22 @@ class Cart
     }
 
     /**
+     * Check if the fee exists
+     */
+    public function hasFee(string $name): bool
+    {
+        return $this->fees->has(md5($name));
+    }
+
+    /**
+     * Check if the discount exists
+     */
+    public function hasDiscount(string $name): bool
+    {
+        return $this->discounts->has(md5($name));
+    }
+
+    /**
      * Get a specific item from the cart
      *
      * @param string $itemId The ID of the item to retrieve
