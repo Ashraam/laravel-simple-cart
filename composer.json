@@ -1,57 +1,79 @@
 {
-  "name": "ashraam/laravel-simple-cart",
-  "description": "Simple session based cart for Laravel 12",
-  "keywords": [
-    "ashraam",
-    "cart",
-    "laravel",
-    "laravelsimplecart"
-  ],
-  "homepage": "https://github.com/ashraam/laravelsimplecart",
-  "license": "MIT",
-  "type": "library",
-  "authors": [
-    {
-      "name": "Romain BERTOLUCCI",
-      "email": "romain.bertolucci@gmail.com",
-      "role": "Developer"
+    "name": "ashraam/laravel-simple-cart",
+    "description": "Simple session based cart for Laravel 12",
+    "keywords": [
+        "ashraam",
+        "cart",
+        "laravel",
+        "laravelsimplecart"
+    ],
+    "homepage": "https://github.com/ashraam/laravelsimplecart",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Romain BERTOLUCCI",
+            "email": "romain.bertolucci@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/session": "^12.0",
+        "illuminate/support": "^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ashraam\\LaravelSimpleCart\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/",
+            "Workbench\\App\\": "workbench/app/",
+            "Workbench\\Database\\Factories\\": "workbench/database/factories/",
+            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Ashraam\\LaravelSimpleCart\\LaravelSimpleCartServiceProvider"
+            ],
+            "aliases": {
+                "Cart": "Ashraam\\LaravelSimpleCart\\Facades\\Cart"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require-dev": {
+        "mockery/mockery": "^1.6",
+        "orchestra/testbench": "^10.4",
+        "pestphp/pest": "^3.7"
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@clear",
+            "@prepare"
+        ],
+        "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
+        "prepare": "@php vendor/bin/testbench package:discover --ansi",
+        "build": "@php vendor/bin/testbench workbench:build --ansi",
+        "serve": [
+            "Composer\\Config::disableProcessTimeout",
+            "@build",
+            "@php vendor/bin/testbench serve --ansi"
+        ],
+        "test": [
+            "@clear",
+            "@php vendor/bin/pest"
+        ]
     }
-  ],
-  "require": {
-    "php": "^8.2",
-    "illuminate/support": "^12.0",
-    "illuminate/session": "^12.0"
-  },
-  "autoload": {
-    "psr-4": {
-      "Ashraam\\LaravelSimpleCart\\": "src"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "Tests\\": "tests/"
-    }
-  },
-  "config": {
-    "sort-packages": true,
-    "allow-plugins": {
-      "pestphp/pest-plugin": true
-    }
-  },
-  "extra": {
-    "laravel": {
-      "providers": [
-        "Ashraam\\LaravelSimpleCart\\LaravelSimpleCartServiceProvider"
-      ],
-      "aliases": {
-        "Cart": "Ashraam\\LaravelSimpleCart\\Facades\\Cart"
-      }
-    }
-  },
-  "minimum-stability": "dev",
-  "prefer-stable": true,
-  "require-dev": {
-    "mockery/mockery": "^1.6",
-    "pestphp/pest": "^3.7"
-  }
 }

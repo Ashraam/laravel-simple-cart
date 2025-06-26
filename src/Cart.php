@@ -2,270 +2,193 @@
 
 namespace Ashraam\LaravelSimpleCart;
 
+use Illuminate\Session\SessionManager;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Config;
 
 class Cart
 {
-    protected Collection $items;
-    protected Collection $fees;
-    protected Collection $discounts;
-    protected string $sessionKey;
+    protected string $instance;
 
-    public function __construct()
+    private SessionManager $session;
+
+    public function __construct(SessionManager $session)
     {
-        $this->sessionKey = Config::get('laravelsimplecart.session_key');
-        $this->items = collect(Session::get($this->sessionKey . '.items', []));
-        $this->fees = collect(Session::get($this->sessionKey . '.fees', []));
-        $this->discounts = collect(Session::get($this->sessionKey . '.discounts', []));
+        $this->instance = "laravel-simple-cart.".Config::get('laravel-simple-cart.default_session_key');
+        $this->session = $session;
     }
 
     /**
-     * Add an item to the cart
+     * Set the cart instance. If not provided, the default cart session key will be used (see config file)
+     *
+     * @param  string|null  $instance
+     * @return $this
      */
-    public function add(string $id, string $name, float $price, int $quantity = 1, array $options = [], array $meta = []): void
+    public function instance(?string $instance = null): self
     {
-        $cartItem = [
-            'id' => $id,
-            'name' => $name,
-            'price' => $price,
-            'quantity' => $quantity,
-            'options' => $options,
-            'meta' => $meta,
-        ];
-
-        $itemId = $this->generateItemId($id, $options);
-        
-        if ($this->items->has($itemId)) {
-            $existingItem = $this->items->get($itemId);
-            $cartItem['quantity'] += $existingItem['quantity'];
-        }
-
-        $this->items->put($itemId, $cartItem);
-        $this->save();
-    }
-
-    /**
-     * Update the quantity of an item in the cart
-     */
-    public function update(string $itemId, int $quantity): void
-    {
-        if ($this->items->has($itemId)) {
-            if ($quantity <= 0) {
-                $this->remove($itemId);
-                return;
-            }
-
-            $item = $this->items->get($itemId);
-            $item['quantity'] = $quantity;
-            $this->items->put($itemId, $item);
-            $this->save();
-        }
-    }
-
-    /**
-     * Remove an item from the cart
-     */
-    public function remove(string $itemId): void
-    {
-        $this->items->forget($itemId);
-        $this->save();
-    }
-
-    /**
-     * Get cart contents
-     */
-    public function content(): Collection
-    {
-        return $this->items;
-    }
-
-    /**
-     * Get cart subtotal (sum of items without fees and discounts)
-     */
-    public function subtotal(): float
-    {
-        return $this->items->sum(function ($item) {
-            return $item['price'] * $item['quantity'];
-        });
-    }
-
-    /**
-     * Get total fees
-     */
-    public function totalFees(): float
-    {
-        return $this->fees->sum('amount');
-    }
-
-    /**
-     * Get total discounts
-     */
-    public function totalDiscounts(): float
-    {
-        return $this->discounts->sum('amount');
-    }
-
-    /**
-     * Get cart total including fees and discounts
-     */
-    public function total(): float
-    {
-        return $this->subtotal() + $this->totalFees() - $this->totalDiscounts();
-    }
-
-    /**
-     * Add a fee to the cart
-     */
-    public function addFee(string $name, float $amount, ?string $description = null): void
-    {
-        $this->fees->put(md5($name), [
-            'name' => $name,
-            'description' => $description,
-            'amount' => $amount
-        ]);
-        $this->save();
-    }
-
-    /**
-     * Remove a fee from the cart
-     */
-    public function removeFee(string $name): void
-    {
-        $this->fees->forget(md5($name));
-        $this->save();
-    }
-
-    /**
-     * Add a discount to the cart
-     */
-    public function addDiscount(string $name, float $amount, ?string $description = null): void
-    {
-        $this->discounts->put(md5($name), [
-            'name' => $name,
-            'description' => $description,
-            'amount' => $amount
-        ]);
-        $this->save();
-    }
-
-    /**
-     * Remove a discount from the cart
-     */
-    public function removeDiscount(string $name): void
-    {
-        $this->discounts->forget(md5($name));
-        $this->save();
-    }
-
-    /**
-     * Get all fees
-     */
-    public function getFees(): Collection
-    {
-        return $this->fees;
-    }
-
-    /**
-     * Get all discounts
-     */
-    public function getDiscounts(): Collection
-    {
-        return $this->discounts;
-    }
-
-    /**
-     * Check if cart has a specific item
-     */
-    public function has(string $itemId): bool
-    {
-        return $this->items->has($itemId);
-    }
-
-    /**
-     * Check if the fee exists
-     */
-    public function hasFee(string $name): bool
-    {
-        return $this->fees->has(md5($name));
-    }
-
-    /**
-     * Check if the discount exists
-     */
-    public function hasDiscount(string $name): bool
-    {
-        return $this->discounts->has(md5($name));
+        $this->instance = "laravel-simple-cart.".($instance ?? Config::get('laravel-simple-cart.default_session_key'));
+        return $this;
     }
 
     /**
      * Get a specific item from the cart
      *
-     * @param string $itemId The ID of the item to retrieve
-     * @return array|null The item if found, null otherwise
+     * @param CartItem|string $item The item instance or the ID of the item to retrieve
+     * @return CartItem|null The item if found, null otherwise
      */
-    public function get(string $itemId): ?array
+    public function get(CartItem|string $item): ?CartItem
     {
-        return $this->items->get($itemId);
+        if($item instanceof CartItem) {
+            $itemId = $item->getHash();
+        } else {
+            $itemId = $item;
+        }
+
+        return $this->content()->get($itemId);
     }
 
     /**
-     * Get a specific discount from the cart
+     * Check if the cart contains a specific item
      *
-     * @param string $name The name of the discount to retrieve
-     * @return array|null The discount if found, null otherwise
+     * @param  CartItem|string  $item
+     * @return bool
      */
-    public function getDiscount(string $name): ?array
+    public function has(CartItem|string $item): bool
     {
-        return $this->discounts->get(md5($name));
+        if($item instanceof CartItem) {
+            $itemId = $item->getHash();
+        } else {
+            $itemId = $item;
+        }
+
+        return $this->content()->has($itemId);
     }
 
     /**
-     * Get a specific fee from the cart
+     * Search for specific items in the cart according to your need
      *
-     * @param string $name The name of the fee to retrieve
-     * @return array|null The fee if found, null otherwise
+     * @param  callable  $callback
+     * @return Collection
      */
-    public function getFee(string $name): ?array
+    public function search(callable $callback): Collection
     {
-        return $this->fees->get(md5($name));
+        return $this->content()->filter($callback);
+    }
+
+    /**
+     * Add the item to the cart. If the item exists already, the item's quantity will be incremented
+     *
+     * @param  CartItem  $item
+     * @return void
+     */
+    public function add(CartItem $item): void
+    {
+        if($this->has($item)) {
+            $existingCartItem = $this->get($item->getHash());
+            $item->incrementQuantity($existingCartItem->getQuantity());
+        }
+
+        $content = $this->content();
+
+        $content->put($item->getHash(), $item);
+
+        $this->session->put($this->instance . '.items', $content);
+    }
+
+    /**
+     * Update the item's quantity, if the quantity is less than 0, the item will be removed from the cart
+     *
+     * @param  CartItem|string  $item
+     * @param  int  $quantity
+     * @return void
+     */
+    public function update(CartItem|string $item, int $quantity): void
+    {
+        if($item instanceof CartItem) {
+            $itemId = $item->getHash();
+        } else {
+            $itemId = $item;
+        }
+
+        if ($this->has($itemId)) {
+            if ($quantity <= 0) {
+                $this->remove($itemId);
+                return;
+            }
+
+            $item = $this->get($itemId);
+            $item->setQuantity($quantity);
+
+            $content = $this->content()->put($item->getHash(), $item);
+            $this->session->put($this->instance . '.items', $content);
+        }
+    }
+
+    /**
+     * Remove the item from the cart
+     *
+     * @param  CartItem|string  $item
+     * @return void
+     */
+    public function remove(CartItem|string $item): void
+    {
+        if($item instanceof CartItem) {
+            $itemId = $item->getHash();
+        } else {
+            $itemId = $item;
+        }
+
+        $this->session->put($this->instance . '.items', $this->content()->forget($itemId));
+    }
+
+    /**
+     * Returns a collection of all items in the cart
+     *
+     * @return Collection
+     */
+    public function content(): Collection
+    {
+        return collect($this->session->get($this->instance . '.items', []));
     }
 
     /**
      * Clear the cart
+     *
+     * @return void
      */
     public function clear(): void
     {
-        $this->items = collect();
-        $this->fees = collect();
-        $this->discounts = collect();
-        $this->save();
+        $this->session->forget($this->instance . '.items');
     }
 
     /**
-     * Get total number of items in cart
+     * Returns the total price of the cart
+     * TODO: explain what is total
+     *
+     * @return float
+     */
+    public function total(): float
+    {
+        return $this->content()->sum(fn($item) => $item->getTotal());
+    }
+
+    /**
+     * It checks if the cart is Empty or not
+     *
+     * @return bool
+     */
+    public function empty(): bool
+    {
+        return $this->content()->isEmpty();
+    }
+
+    /**
+     * Get the total quantity of items in the cart
+     *
+     * @return int
      */
     public function count(): int
     {
-        return $this->items->sum('quantity');
-    }
-
-    /**
-     * Generate a unique ID for cart item
-     */
-    protected function generateItemId(string $id, array $options): string
-    {
-        return md5($id . serialize($options));
-    }
-
-    /**
-     * Save cart to session
-     */
-    protected function save(): void
-    {
-        Session::put($this->sessionKey . '.items', $this->items->toArray());
-        Session::put($this->sessionKey . '.fees', $this->fees->toArray());
-        Session::put($this->sessionKey . '.discounts', $this->discounts->toArray());
+        return $this->content()->sum(fn($item) => $item->getQuantity());
     }
 }
