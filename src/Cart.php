@@ -179,6 +179,7 @@ class Cart
      */
     public function clear(): void
     {
+        $this->modifiers()->clear();
         $this->session->forget("{$this->instance}.items");
     }
 
@@ -194,6 +195,7 @@ class Cart
 
     /**
      * Returns the total price of the cart (subtotal plus total of modifiers)
+     * If the sum of all modifiers applied to the cart is superior to the subtotal, returns 0
      *
      * @return float
      */
@@ -201,8 +203,9 @@ class Cart
     {
         $totalItems = $this->subtotal();
         $totalModifiers = $this->modifiers()->total();
+        $total = $totalItems + $totalModifiers;
 
-        return $totalItems + $totalModifiers;
+        return $total > 0 ? $total : 0;
     }
 
     /**

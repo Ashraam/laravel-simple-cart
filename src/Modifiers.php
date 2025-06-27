@@ -7,12 +7,13 @@ use Illuminate\Support\Collection;
 
 class Modifiers
 {
+    private Cart $cart;
     private string $instance;
-
     private SessionManager $session;
 
     public function __construct(Cart $cart)
     {
+        $this->cart = $cart;
         $this->instance = $cart->getInstance();
         $this->session = $cart->getSession();
     }
@@ -106,12 +107,19 @@ class Modifiers
 
     /**
      * It returns the total value of all modifiers associated to the cart
+     * Modifiers of type percent will be calculated base on the cart subtotal
      *
      * @return float
      */
     public function total(): float
     {
-        return $this->content()->sum(function($modifier) {
+        $subtotal = $this->cart->subtotal();
+
+        return $this->content()->sum(function($modifier) use ($subtotal) {
+            if($modifier->getType() === CartModifier::PERCENT) {
+                return $subtotal * ($modifier->getValue() / 100);
+            }
+
             return $modifier->getValue();
         });
     }
