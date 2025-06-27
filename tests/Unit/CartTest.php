@@ -142,16 +142,24 @@ test('it clears the cart', function () {
         ->toHaveCount(0);
 });
 
-test('it returns the total of the cart', function () {
+test('it returns the subtotal of the cart', function () {
     $this->cart->add($this->item);
 
-    expect($this->cart->total())
+    expect($this->cart->subtotal())
         ->toEqual(100);
 
     $this->cart->update($this->item, 2);
 
-    expect($this->cart->total())
+    expect($this->cart->subtotal())
         ->toEqual(200);
+});
+
+test('it returns the total of the cart', function () {
+    $this->cart->add($this->item);
+    $this->cart->modifiers()->add(new \Ashraam\LaravelSimpleCart\CartModifier('ship', 'Shipping', 10, 'Free shipping'));
+
+    expect($this->cart->total())
+        ->toEqual(110);
 });
 
 test('it checks if the cart is empty', function () {
@@ -169,4 +177,18 @@ test('it returns the total quantity of items in the cart', function () {
     $this->cart->add($this->item);
 
     expect($this->cart->count())->toEqual(4);
+});
+
+test('it returns the instance name', function () {
+    expect($this->cart->instance('default')->getInstance())->toBe('laravel-simple-cart.default');
+});
+
+test('it returns the session manager', function () {
+    expect($this->cart->getSession())
+        ->toBeInstanceOf(\Illuminate\Session\SessionManager::class);
+});
+
+test('it returns the modifiers', function () {
+    expect($this->cart->modifiers())
+        ->toBeInstanceOf(\Ashraam\LaravelSimpleCart\Modifiers::class);
 });

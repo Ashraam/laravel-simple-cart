@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Config;
 
 class Cart
 {
-    protected string $instance;
+    private string $instance;
 
     private SessionManager $session;
 
@@ -28,6 +28,27 @@ class Cart
     {
         $this->instance = "laravel-simple-cart.".($instance ?? Config::get('laravel-simple-cart.default_session_key'));
         return $this;
+    }
+
+    /**
+     * Get the current instance name
+     *
+     * @return string
+     */
+    public function getInstance(): string
+    {
+        return $this->instance;
+    }
+
+
+    /**
+     * Get the current Session Manager
+     *
+     * @return SessionManager
+     */
+    public function getSession(): SessionManager
+    {
+        return $this->session;
     }
 
     /**
@@ -92,7 +113,7 @@ class Cart
 
         $content->put($item->getHash(), $item);
 
-        $this->session->put($this->instance . '.items', $content);
+        $this->session->put("{$this->instance}.items", $content);
     }
 
     /**
@@ -120,7 +141,7 @@ class Cart
             $item->setQuantity($quantity);
 
             $content = $this->content()->put($item->getHash(), $item);
-            $this->session->put($this->instance . '.items', $content);
+            $this->session->put("{$this->instance}.items", $content);
         }
     }
 
@@ -138,7 +159,7 @@ class Cart
             $itemId = $item;
         }
 
-        $this->session->put($this->instance . '.items', $this->content()->forget($itemId));
+        $this->session->put("{$this->instance}.items", $this->content()->forget($itemId));
     }
 
     /**
@@ -148,7 +169,7 @@ class Cart
      */
     public function content(): Collection
     {
-        return collect($this->session->get($this->instance . '.items', []));
+        return collect($this->session->get("{$this->instance}.items", []));
     }
 
     /**
@@ -158,18 +179,30 @@ class Cart
      */
     public function clear(): void
     {
-        $this->session->forget($this->instance . '.items');
+        $this->session->forget("{$this->instance}.items");
     }
 
     /**
-     * Returns the total price of the cart
-     * TODO: explain what is total
+     * It returns the total price of the cart items
+     *
+     * @return float
+     */
+    public function subtotal(): float
+    {
+        return $this->content()->sum(fn($item) => $item->getTotal());
+    }
+
+    /**
+     * Returns the total price of the cart (subtotal plus total of modifiers)
      *
      * @return float
      */
     public function total(): float
     {
-        return $this->content()->sum(fn($item) => $item->getTotal());
+        $totalItems = $this->subtotal();
+        $totalModifiers = $this->modifiers()->total();
+
+        return $totalItems + $totalModifiers;
     }
 
     /**
@@ -190,5 +223,15 @@ class Cart
     public function count(): int
     {
         return $this->content()->sum(fn($item) => $item->getQuantity());
+    }
+
+    /**
+     * Retrieve the modifiers associated with the current cart instance
+     *
+     * @return Modifiers
+     */
+    public function modifiers(): Modifiers
+    {
+        return new Modifiers($this);
     }
 }
