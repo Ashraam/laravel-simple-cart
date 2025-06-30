@@ -4,6 +4,7 @@ namespace Ashraam\LaravelSimpleCart;
 
 use Ashraam\LaravelSimpleCart\Exceptions\InvalidPrice;
 use Ashraam\LaravelSimpleCart\Exceptions\InvalidQuantity;
+use Illuminate\Support\Collection;
 
 class CartItem
 {
@@ -14,6 +15,7 @@ class CartItem
     private int $quantity;
     private array $options;
     private array $meta;
+    private array $modifiers;
 
     public function __construct(string $id, string $name, float $price, int $quantity = 1, array $options = [], array $meta = [])
     {
@@ -44,6 +46,7 @@ class CartItem
         $this->quantity = $quantity;
         $this->options = $options;
         $this->meta = $meta;
+        $this->modifiers = [];
         $this->hash = $this->generateHash();
     }
 
@@ -154,7 +157,98 @@ class CartItem
 
     public function getTotal(): float
     {
-        return ($this->price * $this->quantity) / 100;
+        $total = $this->price * $this->quantity;
+        $modifiers = $this->getModifiers()->sum(function($modifier) use ($total) {
+            if($modifier->getType() === CartModifier::PERCENT) {
+                return $total * ($modifier->getRawValue() / 100);
+            }
+
+            return $modifier->getRawValue();
+        });
+
+        return ($total + $modifiers) / 100;
+    }
+
+    /**
+     * Add a modifier to this cart item
+     *
+     * @param CartModifier $modifier
+     * @return void
+     */
+    public function addModifier(CartModifier $modifier): void
+    {
+        $this->modifiers[$modifier->getId()] = $modifier;
+    }
+
+    /**
+     * Remove a modifier from this cart item
+     *
+     * @param CartModifier|string $modifier
+     * @return void
+     */
+    public function removeModifier(CartModifier|string $modifier): void
+    {
+        if ($modifier instanceof CartModifier) {
+            $id = $modifier->getId();
+        } else {
+            $id = $modifier;
+        }
+
+        unset($this->modifiers[$id]);
+    }
+
+    /**
+     * Check if this cart item has a specific modifier
+     *
+     * @param CartModifier|string $modifier
+     * @return bool
+     */
+    public function hasModifier(CartModifier|string $modifier): bool
+    {
+        if ($modifier instanceof CartModifier) {
+            $id = $modifier->getId();
+        } else {
+            $id = $modifier;
+        }
+
+        return array_key_exists($id, $this->modifiers);
+    }
+
+    /**
+     * Get a specific modifier from this cart item
+     *
+     * @param CartModifier|string $modifier
+     * @return CartModifier|null
+     */
+    public function getModifier(CartModifier|string $modifier): ?CartModifier
+    {
+        if ($modifier instanceof CartModifier) {
+            $id = $modifier->getId();
+        } else {
+            $id = $modifier;
+        }
+
+        return $this->modifiers[$id] ?? null;
+    }
+
+    /**
+     * Get all modifiers for this cart item
+     *
+     * @return Collection
+     */
+    public function getModifiers(): Collection
+    {
+        return collect($this->modifiers);
+    }
+
+    /**
+     * Clear all modifiers from this cart item
+     *
+     * @return void
+     */
+    public function clearModifiers(): void
+    {
+        $this->modifiers = [];
     }
 
     private function generateHash(): string

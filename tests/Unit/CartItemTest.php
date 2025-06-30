@@ -137,6 +137,258 @@ test('it returns the item price', function () {
     expect($item->getPrice())->toEqual(100);
 });
 
+// Modifier tests
+test('it can add a modifier to an item', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+    );
+    
+    $modifier = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'shipping',
+        name: 'Express Shipping',
+        value: 10
+    );
+    
+    $item->addModifier($modifier);
+    
+    expect($item->hasModifier('shipping'))
+        ->toBeTrue()
+        ->and($item->getModifier('shipping'))
+        ->toBe($modifier)
+        ->and($item->getModifiers())
+        ->toHaveCount(1);
+});
+
+test('it can remove a modifier from an item by id', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+    );
+    
+    $modifier = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'shipping',
+        name: 'Express Shipping',
+        value: 10
+    );
+    
+    $item->addModifier($modifier);
+    expect($item->hasModifier('shipping'))->toBeTrue();
+    
+    $item->removeModifier('shipping');
+    expect($item->hasModifier('shipping'))->toBeFalse();
+});
+
+test('it can remove a modifier from an item by instance', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+    );
+    
+    $modifier = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'shipping',
+        name: 'Express Shipping',
+        value: 10
+    );
+    
+    $item->addModifier($modifier);
+    expect($item->hasModifier($modifier))->toBeTrue();
+    
+    $item->removeModifier($modifier);
+    expect($item->hasModifier($modifier))->toBeFalse();
+});
+
+test('it can check if an item has a modifier by id', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+    );
+    
+    $modifier = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'shipping',
+        name: 'Express Shipping',
+        value: 10
+    );
+    
+    expect($item->hasModifier('shipping'))->toBeFalse();
+    
+    $item->addModifier($modifier);
+    expect($item->hasModifier('shipping'))->toBeTrue();
+});
+
+test('it can check if an item has a modifier by instance', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+    );
+    
+    $modifier = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'shipping',
+        name: 'Express Shipping',
+        value: 10
+    );
+    
+    expect($item->hasModifier($modifier))->toBeFalse();
+    
+    $item->addModifier($modifier);
+    expect($item->hasModifier($modifier))->toBeTrue();
+});
+
+test('it can get a modifier from an item by id', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+    );
+    
+    $modifier = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'shipping',
+        name: 'Express Shipping',
+        value: 10
+    );
+    
+    $item->addModifier($modifier);
+    
+    expect($item->getModifier('shipping'))
+        ->toBe($modifier);
+});
+
+test('it can get a modifier from an item by instance', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+    );
+    
+    $modifier = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'shipping',
+        name: 'Express Shipping',
+        value: 10
+    );
+    
+    $item->addModifier($modifier);
+    
+    expect($item->getModifier($modifier))
+        ->toBe($modifier);
+});
+
+test('it returns null when getting non-existent modifier', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+    );
+    
+    expect($item->getModifier('non-existent'))
+        ->toBeNull();
+});
+
+test('it can get all modifiers from an item', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+    );
+    
+    $modifier1 = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'shipping',
+        name: 'Express Shipping',
+        value: 10
+    );
+    
+    $modifier2 = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'discount',
+        name: 'Item Discount',
+        value: -5
+    );
+    
+    $item->addModifier($modifier1);
+    $item->addModifier($modifier2);
+    
+    $modifiers = $item->getModifiers();
+    
+    expect($modifiers)
+        ->toBeInstanceOf(\Illuminate\Support\Collection::class)
+        ->toHaveCount(2)
+        ->toContain($modifier1)
+        ->toContain($modifier2);
+});
+
+test('it can clear all modifiers from an item', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+    );
+    
+    $modifier1 = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'shipping',
+        name: 'Express Shipping',
+        value: 10
+    );
+    
+    $modifier2 = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'discount',
+        name: 'Item Discount',
+        value: -5
+    );
+    
+    $item->addModifier($modifier1);
+    $item->addModifier($modifier2);
+    
+    expect($item->getModifiers())->toHaveCount(2);
+    
+    $item->clearModifiers();
+    
+    expect($item->getModifiers())->toHaveCount(0);
+});
+
+test('adding modifier with same id overwrites existing modifier', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+    );
+    
+    $modifier1 = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'discount',
+        name: 'First Discount',
+        value: -5
+    );
+    
+    $modifier2 = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'discount',
+        name: 'Second Discount',
+        value: -10
+    );
+    
+    $item->addModifier($modifier1);
+    $item->addModifier($modifier2);
+    
+    expect($item->getModifiers())
+        ->toHaveCount(1)
+        ->and($item->getModifier('discount'))
+        ->toBe($modifier2)
+        ->and($item->getModifier('discount')->getName())
+        ->toBe('Second Discount');
+});
+
 test('it updates the item price', function () {
     $item = new CartItem(
         id: 'product-1',
