@@ -63,6 +63,25 @@ test('it returns null when getting non-existent item', function () {
     expect($result)->toBeNull();
 });
 
+test('it can find an item by its id and options', function () {
+    $this->cart->add(new CartItem(id: 'product-1', name: 'T-Shirt', price: 25, quantity: 1, options: ['size' => 'M']));
+
+    $item = $this->cart->find('product-1', ['size' => 'M']);
+
+    expect($item)
+        ->toBeInstanceOf(CartItem::class)
+        ->and($item?->getId())
+        ->toBe('product-1');
+});
+
+test('it returns null if cannot find the item', function () {
+    $this->cart->add(new CartItem(id: 'product-1', name: 'T-Shirt', price: 25, quantity: 1, options: ['size' => 'M', 'color' => 'red']));
+
+    $item = $this->cart->find('product-1', ['size' => 'M']);
+
+    expect($item)->toBeNull();
+});
+
 test('it can check if an item exists in the cart', function () {
     expect($this->cart->has($this->item))->toBeFalse();
 

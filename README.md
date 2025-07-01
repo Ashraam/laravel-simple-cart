@@ -134,6 +134,10 @@ Cart::get('13b1fc03bd99f6eac794faef45fbc057');
 // You can use an instance of CartItem
 Cart::has('13b1fc03bd99f6eac794faef45fbc057');
 
+// Alternatively, you can find an item by its id and options
+// It will return an instance of CartItem or null if not found
+Cart::find(id: 'product-1', options: ['size' => 'M']);
+
 // Returns a collection of filtered items
 // You have access to all the CartItem methods available
 Cart::search(function($item) {
@@ -414,6 +418,7 @@ Cart::getSession(): SessionManager
 Cart::add(CartItem $item): void
 Cart::get(CartItem|string $item): ?CartItem
 Cart::has(CartItem|string $item): bool
+Cart::find(string $id, array $options = []): ?CartItem
 Cart::search(callable $callback): Collection
 Cart::update(CartItem|string $item, int $quantity): void
 Cart::remove(CartItem|string $item): void

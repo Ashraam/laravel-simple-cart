@@ -52,6 +52,22 @@ class Cart
     }
 
     /**
+     * Find an item in the cart by product ID and options
+     * This provides a developer-friendly alternative to using hashes
+     *
+     * @param string $id The product ID
+     * @param array $options The product options (size, color, etc.)
+     * @return CartItem|null
+     */
+    public function find(string $id, array $options = []): ?CartItem
+    {
+        return $this->content()->first(function($item) use ($id, $options) {
+            return $item->getId() === $id && $item->getOptions() === $options;
+        });
+    }
+
+
+    /**
      * Get a specific item from the cart
      *
      * @param CartItem|string $item The item instance or the ID of the item to retrieve
