@@ -421,11 +421,11 @@ class CartItem
     }
 
     /**
-     * Returns the unit price of the item with modifiers applied to it
+     * Returns the unit price of the item in cents with modifiers applied to it
      *
-     * @return float
+     * @return int
      */
-    private function getPriceWithModifiers(): float
+    private function getPriceWithModifiers(): int
     {
         $price = $this->price;
         $modifiers = $this->getModifiers()->sum(function ($modifier) use ($price) {
