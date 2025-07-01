@@ -184,13 +184,28 @@ class Cart
     }
 
     /**
+     * It returns the sum of all items without vat
+     *
+     * @return float
+     */
+    public function subtotalWithoutVat(): float
+    {
+        return $this->content()->sum(fn($item) => $item->totalWithoutVat());
+    }
+
+    /**
      * It returns the total price of the cart items
      *
      * @return float
      */
     public function subtotal(): float
     {
-        return $this->content()->sum(fn($item) => $item->getTotal());
+        return $this->content()->sum(fn($item) => $item->total());
+    }
+
+    public function vat(): float
+    {
+        return $this->content()->sum(fn($item) => $item->vatTotal());
     }
 
     /**

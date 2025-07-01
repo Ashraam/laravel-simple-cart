@@ -125,7 +125,7 @@ test('it updates the item name', function () {
     expect($item->getName())->toBe('Test Product 2');
 });
 
-test('it returns the item price', function () {
+test('it returns the base item price', function () {
     $item = new CartItem(
         id: 'product-1',
         name: 'Test Product',
@@ -548,7 +548,7 @@ test('it overwrites the item options', function () {
         ->toHaveKey('color', 'red');
 });
 
-test('it recalculates the item has when the options are updated', function () {
+test('it recalculates the item hash when the options are updated', function () {
     $item = new CartItem(
         id: 'product-1',
         name: 'Test Product',
@@ -620,7 +620,9 @@ test('it overwrites the item meta', function () {
         ->toHaveKey('image', 'image-100');
 });
 
-test('it returns the item total price', function () {
+test('it sets the default vat rate on item', function () {
+    \Illuminate\Support\Facades\Config::set('laravel-simple-cart.default_vat_rate', 20);
+
     $item = new CartItem(
         id: 'product-1',
         name: 'Test Product',
@@ -628,5 +630,322 @@ test('it returns the item total price', function () {
         quantity: 3,
     );
 
-    expect($item->getTotal())->toEqual(300);
+    expect($item->getVatRate())->toEqual(20);
+});
+
+test('it overwrites the default vat rate', function () {
+    \Illuminate\Support\Facades\Config::set('laravel-simple-cart.default_vat_rate', 20);
+
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 3,
+        vat_rate: 10
+    );
+
+    expect($item->getVatRate())->toEqual(10);
+});
+
+test('vat rate cannot be less than 0', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 3,
+        vat_rate: -10
+    );
+})->throws(InvalidArgumentException::class);
+
+test('vat rate cannot be greater than 100', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 3,
+        vat_rate: 110
+    );
+})->throws(InvalidArgumentException::class);
+
+test('it throws when id is empty string', function () {
+    new CartItem(
+        id: '',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1
+    );
+})->throws(InvalidArgumentException::class, 'Please provide an id for the item.');
+
+test('it throws when name is empty string', function () {
+    new CartItem(
+        id: 'product-1',
+        name: '',
+        price: 100,
+        quantity: 1
+    );
+})->throws(InvalidArgumentException::class, 'Please provide a name for the item.');
+
+test('it throws when price is empty (zero)', function () {
+    new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 0,
+        quantity: 1
+    );
+})->throws(InvalidArgumentException::class, 'Please provide a price for the item.');
+
+test('it throws when incrementing quantity with invalid value', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1
+    );
+    
+    $item->incrementQuantity(0);
+})->throws(\Ashraam\LaravelSimpleCart\Exceptions\InvalidQuantity::class, 'Quantity cannot be less than 1.');
+
+test('it throws when incrementing quantity with negative value', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1
+    );
+    
+    $item->incrementQuantity(-1);
+})->throws(\Ashraam\LaravelSimpleCart\Exceptions\InvalidQuantity::class, 'Quantity cannot be less than 1.');
+
+test('it throws when decrementing quantity with invalid value', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 5
+    );
+    
+    $item->decrementQuantity(0);
+})->throws(\Ashraam\LaravelSimpleCart\Exceptions\InvalidQuantity::class, 'Quantity cannot be less than 1.');
+
+test('it throws when decrementing quantity with negative value', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 5
+    );
+    
+    $item->decrementQuantity(-1);
+})->throws(\Ashraam\LaravelSimpleCart\Exceptions\InvalidQuantity::class, 'Quantity cannot be less than 1.');
+
+test('it handles null vat rate correctly', function () {
+    \Illuminate\Support\Facades\Config::set('laravel-simple-cart.default_vat_rate', null);
+    
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+        vat_rate: null
+    );
+    
+    expect($item->getVatRate())->toBeNull();
+});
+
+test('it properly stores price in cents internally', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 99.99,
+        quantity: 1
+    );
+    
+    expect($item->getPrice())->toEqual(99.99);
+});
+
+test('it calculates correct vat with null vat rate', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+        vat_rate: null
+    );
+    
+    expect($item->vat())->toEqual(0);
+    expect($item->vatTotal())->toEqual(0);
+});
+
+test('it calculates unit price correctly with zero vat rate', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1,
+        vat_rate: 0
+    );
+    
+    expect($item->unitPriceWithoutVat())->toEqual(100);
+    expect($item->unitPrice())->toEqual(100);
+    expect($item->vat())->toEqual(0);
+});
+
+test('it handles modifiers correctly with zero base price', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Free Product',
+        price: 0.01, // Minimum allowed price
+        quantity: 1,
+        vat_rate: 20
+    );
+    
+    $modifier = new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'discount',
+        name: 'Full Discount',
+        value: -100,
+        type: 'percent'
+    );
+    
+    $item->addModifier($modifier);
+    
+    expect($item->unitPriceWithoutVat())->toEqual(0);
+    expect($item->unitPrice())->toEqual(0);
+});
+
+test('it handles large quantities correctly', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 10,
+        quantity: 1000,
+        vat_rate: 20
+    );
+    
+    expect($item->totalWithoutVat())->toEqual(10000);
+    expect($item->total())->toEqual(12000);
+    expect($item->vatTotal())->toEqual(2000);
+});
+
+test('it calculates the vat for one item', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 120,
+        quantity: 3,
+        vat_rate: 10
+    );
+
+    expect($item->vat())->toEqual(12);
+});
+
+test('it calculates the vat for all items', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 120,
+        quantity: 3,
+        vat_rate: 10
+    );
+
+    expect($item->vatTotal())->toEqual(36);
+});
+
+test('it calculates the unit price of an item with modifiers', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 120,
+        quantity: 2,
+        vat_rate: 10,
+    );
+
+    $item->addModifier(new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'discount',
+        name: 'Discount',
+        value: -10,
+        type: 'percent'
+    ));
+
+    $item->addModifier(new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'shipping',
+        name: 'Express Shipping',
+        value: 10
+    ));
+
+    expect($item->unitPriceWithoutVat())->toEqual(118); // 120 - (120 * 10%) + 10
+});
+
+test('it calculates the unit price of an item with vat and modifiers', function () {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 120,
+        quantity: 2,
+        vat_rate: 20,
+    );
+
+    $item->addModifier(new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'discount',
+        name: 'Discount',
+        value: -10,
+        type: 'percent'
+    ));
+
+    $item->addModifier(new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'shipping',
+        name: 'Express Shipping',
+        value: 10
+    ));
+
+    expect($item->unitPrice())->toEqual(141.6); // (base prise - discount + shipping) + 20% vat
+});
+
+test('it calculates the total price of an item without vat', function() {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 120,
+        quantity: 2,
+        vat_rate: 20,
+    );
+
+    $item->addModifier(new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'discount',
+        name: 'Discount',
+        value: -10,
+        type: 'percent'
+    ));
+
+    $item->addModifier(new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'shipping',
+        name: 'Express Shipping',
+        value: 10
+    ));
+
+    expect($item->totalWithoutVat())->toEqual(236); // (base prise - discount + shipping) x 2
+});
+
+test('it calculates the total price of an item with vat and modifiers', function() {
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 120,
+        quantity: 2,
+        vat_rate: 20,
+    );
+
+    $item->addModifier(new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'discount',
+        name: 'Discount',
+        value: -10,
+        type: 'percent'
+    ));
+
+    $item->addModifier(new \Ashraam\LaravelSimpleCart\CartModifier(
+        id: 'shipping',
+        name: 'Express Shipping',
+        value: 10
+    ));
+
+    expect($item->total())->toEqual(283.2); // ((base prise - discount + shipping) + 20% vat) x 2
 });

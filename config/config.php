@@ -14,4 +14,15 @@ return [
     |
     */
     'default_session_key' => 'default_cart',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default VAT Rate
+    |--------------------------------------------------------------------------
+    |
+    | This value is the default VAT Rate to be applied on items.
+    | The value is a float between 0 and 100
+    |
+    */
+    'default_vat_rate' => null,
 ];

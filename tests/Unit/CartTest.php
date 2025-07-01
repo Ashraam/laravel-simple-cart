@@ -127,8 +127,8 @@ test('it throws if you try to add an item other than an CartItem instance', func
 })->throws(TypeError::class);
 
 test('adding same item with different options creates separate entries', function () {
-    $item1 = new CartItem('product-1', 'T-Shirt', 25, 1, ['size' => 'M']);
-    $item2 = new CartItem('product-1', 'T-Shirt', 25, 1, ['size' => 'L']);
+    $item1 = new CartItem(id: 'product-1', name: 'T-Shirt', price: 25, quantity: 1, options: ['size' => 'M']);
+    $item2 = new CartItem(id: 'product-1', name: 'T-Shirt', price: 25, quantity: 1, options: ['size' => 'L']);
 
     $this->cart->add($item1);
     $this->cart->add($item2);
@@ -140,8 +140,8 @@ test('adding same item with different options creates separate entries', functio
 });
 
 test('adding same item with same options increments quantity', function () {
-    $item1 = new CartItem('product-1', 'T-Shirt', 25, 2, ['size' => 'M']);
-    $item2 = new CartItem('product-1', 'T-Shirt', 25, 3, ['size' => 'M']);
+    $item1 = new CartItem(id: 'product-1', name: 'T-Shirt', price: 25, quantity: 2, options: ['size' => 'M']);
+    $item2 = new CartItem(id: 'product-1', name: 'T-Shirt', price: 25, quantity: 3, options: ['size' => 'M']);
 
     $this->cart->add($item1);
     $this->cart->add($item2);
@@ -363,9 +363,9 @@ test('mixed value and percent modifiers work together', function () {
 });
 
 test('cart handles multiple items with complex modifiers', function () {
-    $item1 = new CartItem('product-1', 'Product 1', 50, 2);
-    $item2 = new CartItem('product-2', 'Product 2', 30, 1);
-    $item3 = new CartItem('product-3', 'Product 3', 75, 1, ['color' => 'red']);
+    $item1 = new CartItem(id: 'product-1', name: 'Product 1', price: 50, quantity: 2);
+    $item2 = new CartItem(id: 'product-2', name: 'Product 2', price: 30, quantity: 1);
+    $item3 = new CartItem(id: 'product-3', name: 'Product 3', price: 75, quantity: 1, options: ['color' => 'red']);
 
     $this->cart->add($item1);
     $this->cart->add($item2);
@@ -449,4 +449,73 @@ test('removing all items affects modifier calculations', function () {
         ->toEqual(0) // 10% of 0
         ->and($this->cart->total())
         ->toEqual(0);
+});
+
+test('it returns the sum of all items without vat', function () {
+    \Illuminate\Support\Facades\Config::set('laravel-simple-cart.default_vat_rate', 20);
+
+    $item1 = new CartItem('product-1', 'Product 1', 50, 1);
+    $item2 = new CartItem('product-2', 'Product 2', 30, 1);
+
+    $this->cart->add($item1);
+    $this->cart->add($item2);
+
+    $discount = new CartModifier('discount', '10% Discount', -10, CartModifier::PERCENT);
+    $this->cart->modifiers()->add($discount);
+
+    expect($this->cart->subtotalWithoutVat())->toEqual(80);
+});
+
+test('it returns the sum of all items with vat', function () {
+    \Illuminate\Support\Facades\Config::set('laravel-simple-cart.default_vat_rate', 20);
+
+    $item1 = new CartItem('product-1', 'Product 1', 50, 1); // 50 + 20% = 60
+    $item2 = new CartItem('product-2', 'Product 2', 30, 1); // 36 + 20% = 36
+
+    $this->cart->add($item1);
+    $this->cart->add($item2);
+
+    $discount = new CartModifier('discount', '10% Discount', -10, CartModifier::PERCENT);
+    $this->cart->modifiers()->add($discount);
+
+    expect($this->cart->subtotal())->toEqual(96);
+});
+
+test('it returns the total vat amount', function () {
+    \Illuminate\Support\Facades\Config::set('laravel-simple-cart.default_vat_rate', 20);
+
+    $item1 = new CartItem('product-1', 'Product 1', 50, 1); // 50 x 0.2 = 10
+    $item2 = new CartItem('product-2', 'Product 2', 30, 1); // 36 x 0.2 = 6
+
+    $this->cart->add($item1);
+    $this->cart->add($item2);
+
+    expect($this->cart->vat())->toEqual(16);
+});
+
+test('it calculates correctly a cart with modifiers and vat', function() {
+    $item1 = new CartItem('product-1', 'Product 1', 60, 1, vat_rate: 10); // 50 x 0.2 = 10
+    $item2 = new CartItem('product-2', 'Product 2', 100, 3, vat_rate: 20); // 36 x 0.2 = 6
+
+    $mod1 = new CartModifier('discount', '10% Discount', -10, CartModifier::PERCENT);
+    $mod2 = new CartModifier('shipping', 'Shipping', 10, CartModifier::VALUE);
+    $mod3 = new CartModifier('rebates', 'Special item promotion', -10, CartModifier::VALUE);
+
+    $item1->addModifier($mod3);
+
+    $this->cart->add($item1);
+    $this->cart->add($item2);
+
+    $this->cart->modifiers()->add($mod1);
+    $this->cart->modifiers()->add($mod2);
+
+    expect($this->cart->subtotalWithoutVat())
+        ->toEqual(350) // (60 - 10) + (100 * 3)
+        ->and($this->cart->vat())
+        ->toEqual(65) // ((60 -10) * 0.1) + ((100 * 0.2) * 3)
+        ->and($this->cart->subtotal())
+        ->toEqual(415) // ((60 - 10) + 10%) + ((100 + 20%) * 3)
+        ->and($this->cart->total())
+        ->toEqual(383.5); // 415 - (415 * 0.1) + 10
+
 });
