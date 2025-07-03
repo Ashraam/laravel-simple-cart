@@ -107,6 +107,17 @@ $vat = Cart::vat(); // 10.8, ((30 - 10%) * 0.2) * 2
 $total = Cart::total(); // 74.8
 ```
 
+## Events
+
+The package dispatches several events to allow you to hook into the cart's lifecycle. All events contain the cart instance name.
+
+| Event                                                                    | Description                                       |
+|--------------------------------------------------------------------------|---------------------------------------------------|
+| `Ashraam\LaravelSimpleCart\Events\ItemAdded($instance, $item)`           | Dispatched when an item is added to the cart.     |
+| `Ashraam\LaravelSimpleCart\Events\ItemQuantityUpdated($instance, $item)` | Dispatched when an item's quantity is updated.    |
+| `Ashraam\LaravelSimpleCart\Events\ItemRemoved($instance)`                | Dispatched when an item is removed from the cart. |
+| `Ashraam\LaravelSimpleCart\Events\CartCleared($instance)`                | Dispatched when the cart is cleared.              |
+
 ## Classes and methods
 
 ### Cart

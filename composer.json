@@ -20,7 +20,8 @@
     "require": {
         "php": "^8.2",
         "illuminate/session": "^12.0",
-        "illuminate/support": "^12.0"
+        "illuminate/support": "^12.0",
+        "illuminate/events": "^12.0"
     },
     "autoload": {
         "psr-4": {

@@ -949,3 +949,16 @@ test('it calculates the total price of an item with vat and modifiers', function
 
     expect($item->total())->toEqual(283.2); // ((base prise - discount + shipping) + 20% vat) x 2
 });
+
+test('it returns 0 vat when default vat rate is null', function () {
+    \Illuminate\Support\Facades\Config::set('laravel-simple-cart.default_vat_rate', null);
+
+    $item = new CartItem(
+        id: 'product-1',
+        name: 'Test Product',
+        price: 100,
+        quantity: 1
+    );
+
+    expect($item->vat())->toEqual(0);
+});

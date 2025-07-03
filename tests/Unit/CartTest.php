@@ -2,8 +2,14 @@
 
 use Ashraam\LaravelSimpleCart\CartItem;
 use Ashraam\LaravelSimpleCart\CartModifier;
+use Ashraam\LaravelSimpleCart\Events\CartCleared;
+use Ashraam\LaravelSimpleCart\Events\ItemAdded;
+use Ashraam\LaravelSimpleCart\Events\ItemQuantityUpdated;
+use Ashraam\LaravelSimpleCart\Events\ItemRemoved;
+use Illuminate\Support\Facades\Event;
 
 beforeEach(function () {
+    config(['laravel-simple-cart.default_session_key' => 'default_cart']);
     $this->cart = app(\Ashraam\LaravelSimpleCart\Cart::class);
     $this->item = new CartItem(
         id: 'product-1',
@@ -141,6 +147,18 @@ test('it can add an item to the cart', function () {
         ->toBeTrue();
 });
 
+test('it dispatch an event when adding an item', function () {
+    Event::fake();
+
+    $this->cart->add($this->item);
+
+    $hash = $this->item->getHash();
+
+    Event::assertDispatched(ItemAdded::class, function ($event) use($hash) {
+        return $event->instance === 'default_cart' && $event->item->getHash() === $hash;
+    });
+});
+
 test('it throws if you try to add an item other than an CartItem instance', function () {
     $this->cart->add([]);
 })->throws(TypeError::class);
@@ -182,6 +200,20 @@ test('it updates the item quantity', function () {
         ->toEqual(2);
 });
 
+test('it dispatch an event when update an item quantity', function () {
+    Event::fake();
+
+    $this->cart->add($this->item);
+
+    $this->cart->update($this->item, 2);
+
+    $hash = $this->item->getHash();
+
+    Event::assertDispatched(ItemQuantityUpdated::class, function ($event) use($hash) {
+        return $event->instance === 'default_cart' && $event->item->getHash() === $hash;
+    });
+});
+
 test('it updates an item by hash string', function () {
     $this->cart->add($this->item);
     $hash = $this->item->getHash();
@@ -211,7 +243,6 @@ test('it remove the item if the quantity is less than 1', function () {
     expect($this->cart->empty())->toBeTrue();
 });
 
-
 test('it removes an item from the cart', function () {
     $this->cart->add($this->item);
 
@@ -226,6 +257,18 @@ test('it removes an item from the cart', function () {
         ->toBeFalse()
         ->and($this->cart->empty())
         ->toBeTrue();
+});
+
+test('it dispatch an event when removing an item', function () {
+    Event::fake();
+
+    $this->cart->add($this->item);
+
+    $this->cart->remove($this->item);
+
+    Event::assertDispatched(ItemRemoved::class, function ($event) {
+        return $event->instance === 'default_cart';
+    });
 });
 
 test('it removes an item by hash string', function () {
@@ -258,6 +301,18 @@ test('it clears the cart', function () {
 
     expect($this->cart->content())
         ->toHaveCount(0);
+});
+
+test('it dispatch an event when clearing the cart', function () {
+    Event::fake();
+
+    $this->cart->add($this->item);
+
+    $this->cart->clear();
+
+    Event::assertDispatched(CartCleared::class, function ($event) {
+        return $event->instance === 'default_cart';
+    });
 });
 
 test('clearing the cart also clear the modifiers', function () {
@@ -318,7 +373,7 @@ test('it returns the total quantity of items in the cart', function () {
 });
 
 test('it returns the instance name', function () {
-    expect($this->cart->instance('default')->getInstance())->toBe('laravel-simple-cart.default');
+    expect($this->cart->instance('default')->getInstance())->toBe('default');
 });
 
 test('it returns the session manager', function () {
@@ -536,5 +591,4 @@ test('it calculates correctly a cart with modifiers and vat', function() {
         ->toEqual(415) // ((60 - 10) + 10%) + ((100 + 20%) * 3)
         ->and($this->cart->total())
         ->toEqual(383.5); // 415 - (415 * 0.1) + 10
-
 });

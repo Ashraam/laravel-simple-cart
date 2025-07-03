@@ -2,8 +2,12 @@
 
 namespace Ashraam\LaravelSimpleCart;
 
+use Ashraam\LaravelSimpleCart\Events\CartCleared;
+use Ashraam\LaravelSimpleCart\Events\ItemQuantityUpdated;
+use Ashraam\LaravelSimpleCart\Events\ItemRemoved;
 use Illuminate\Session\SessionManager;
 use Illuminate\Support\Collection;
+use Ashraam\LaravelSimpleCart\Events\ItemAdded;
 use Illuminate\Support\Facades\Config;
 
 class Cart
@@ -37,7 +41,7 @@ class Cart
      */
     public function getInstance(): string
     {
-        return $this->instance;
+        return str_replace("laravel-simple-cart.", "", $this->instance);
     }
 
 
@@ -130,6 +134,8 @@ class Cart
         $content->put($item->getHash(), $item);
 
         $this->session->put("{$this->instance}.items", $content);
+
+        event(new ItemAdded($this->getInstance(), $item));
     }
 
     /**
@@ -158,6 +164,8 @@ class Cart
 
             $content = $this->content()->put($item->getHash(), $item);
             $this->session->put("{$this->instance}.items", $content);
+
+            event(new ItemQuantityUpdated($this->getInstance(), $this->get($itemId)));
         }
     }
 
@@ -176,6 +184,8 @@ class Cart
         }
 
         $this->session->put("{$this->instance}.items", $this->content()->forget($itemId));
+
+        event(new ItemRemoved($this->getInstance()));
     }
 
     /**
@@ -197,6 +207,8 @@ class Cart
     {
         $this->modifiers()->clear();
         $this->session->forget("{$this->instance}.items");
+
+        event(new CartCleared($this->getInstance()));
     }
 
     /**
