@@ -1,5 +1,6 @@
 # Laravel Simple Cart
 
+![Test](https://github.com/Ashraam/laravel-simple-cart/actions/workflows/tests.yml/badge.svg)
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/ashraam/laravel-simple-cart.svg?style=flat-square)](https://packagist.org/packages/ashraam/laravel-simple-cart)
 [![Total Downloads](https://img.shields.io/packagist/dt/ashraam/laravel-simple-cart.svg?style=flat-square)](https://packagist.org/packages/ashraam/laravel-simple-cart)
 
