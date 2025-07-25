@@ -6,6 +6,7 @@ use Ashraam\LaravelSimpleCart\Events\CartCleared;
 use Ashraam\LaravelSimpleCart\Events\ItemAdded;
 use Ashraam\LaravelSimpleCart\Events\ItemQuantityUpdated;
 use Ashraam\LaravelSimpleCart\Events\ItemRemoved;
+use Ashraam\LaravelSimpleCart\Events\ItemReplaced;
 use Illuminate\Support\Facades\Event;
 
 beforeEach(function () {
@@ -646,4 +647,103 @@ test('cart handles extreme modifier combinations', function () {
 
     // Should not go below 0
     expect($this->cart->total())->toEqual(0);
+});
+
+test('it can replace an existing item in the cart', function () {
+    $originalItem = new CartItem('product-1', 'Original Product', 100, 2);
+    $this->cart->add($originalItem);
+
+    expect($this->cart->count())->toEqual(2)
+        ->and($this->cart->get($originalItem)?->getName())->toEqual('Original Product')
+        ->and($this->cart->get($originalItem)?->getPrice())->toEqual(100);
+
+    $updatedItem = new CartItem('product-1', 'Updated Product', 150, 3);
+    $this->cart->replace($updatedItem);
+
+    expect($this->cart->count())->toEqual(3)
+        ->and($this->cart->content())->toHaveCount(1)
+        ->and($this->cart->get($updatedItem)?->getName())->toEqual('Updated Product')
+        ->and($this->cart->get($updatedItem)?->getPrice())->toEqual(150);
+});
+
+test('it can replace an item with different options', function () {
+    $originalItem = new CartItem('product-1', 'T-Shirt', 25, 1, options: ['size' => 'M']);
+    $this->cart->add($originalItem);
+
+    $updatedItem = new CartItem('product-1', 'T-Shirt', 30, 2, options: ['size' => 'M']);
+    $this->cart->replace($updatedItem);
+
+    expect($this->cart->count())->toEqual(2)
+        ->and($this->cart->get($updatedItem)?->getPrice())->toEqual(30)
+        ->and($this->cart->get($updatedItem)?->getQuantity())->toEqual(2);
+});
+
+test('replace adds new item if it does not exist', function () {
+    $newItem = new CartItem('product-2', 'New Product', 75, 1);
+    
+    expect($this->cart->has($newItem))->toBeFalse();
+    
+    $this->cart->replace($newItem);
+
+    expect($this->cart->has($newItem))->toBeTrue()
+        ->and($this->cart->count())->toEqual(1);
+});
+
+test('replace dispatches ItemAdded event when adding new item', function () {
+    Event::fake();
+
+    $item = new CartItem('product-1', 'Test Product', 100, 1);
+    $this->cart->replace($item);
+
+    Event::assertDispatched(ItemAdded::class, function ($event) use ($item) {
+        return $event->instance === 'default_cart' && $event->item->getHash() === $item->getHash();
+    });
+    
+    Event::assertNotDispatched(ItemReplaced::class);
+});
+
+test('replace dispatches ItemReplaced event when replacing existing item', function () {
+    Event::fake();
+
+    $originalItem = new CartItem('product-1', 'Original Product', 100, 1);
+    $this->cart->add($originalItem);
+    
+    Event::clearResolvedInstances(); // Clear previous events
+    Event::fake();
+
+    $updatedItem = new CartItem('product-1', 'Updated Product', 150, 2);
+    $this->cart->replace($updatedItem);
+
+    Event::assertDispatched(ItemReplaced::class, function ($event) use ($updatedItem) {
+        return $event->instance === 'default_cart' && $event->item->getHash() === $updatedItem->getHash();
+    });
+    
+    Event::assertNotDispatched(ItemAdded::class);
+});
+
+test('replace does not increment quantity like add does', function () {
+    $originalItem = new CartItem('product-1', 'Product', 100, 2);
+    $this->cart->add($originalItem);
+
+    expect($this->cart->count())->toEqual(2);
+
+    $replacementItem = new CartItem('product-1', 'Product', 100, 3);
+    $this->cart->replace($replacementItem);
+
+    expect($this->cart->count())->toEqual(3)
+        ->and($this->cart->content())->toHaveCount(1);
+});
+
+test('replace persists changes in session', function () {
+    $originalItem = new CartItem('product-1', 'Original', 100, 1);
+    $this->cart->add($originalItem);
+
+    $updatedItem = new CartItem('product-1', 'Updated', 200, 5);
+    $this->cart->replace($updatedItem);
+
+    $newCartInstance = app(\Ashraam\LaravelSimpleCart\Cart::class);
+    
+    expect($newCartInstance->get($updatedItem)?->getName())->toEqual('Updated')
+        ->and($newCartInstance->get($updatedItem)?->getPrice())->toEqual(200)
+        ->and($newCartInstance->get($updatedItem)?->getQuantity())->toEqual(5);
 });

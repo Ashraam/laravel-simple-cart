@@ -5,6 +5,7 @@ namespace Ashraam\LaravelSimpleCart;
 use Ashraam\LaravelSimpleCart\Events\CartCleared;
 use Ashraam\LaravelSimpleCart\Events\ItemQuantityUpdated;
 use Ashraam\LaravelSimpleCart\Events\ItemRemoved;
+use Ashraam\LaravelSimpleCart\Events\ItemReplaced;
 use Illuminate\Session\SessionManager;
 use Illuminate\Support\Collection;
 use Ashraam\LaravelSimpleCart\Events\ItemAdded;
@@ -136,6 +137,27 @@ class Cart
         $this->session->put("{$this->instance}.items", $content);
 
         event(new ItemAdded($this->getInstance(), $item));
+    }
+
+    /**
+     * Replace an existing item in the cart or add it if it doesn't exist
+     *
+     * @param  CartItem  $item
+     * @return void
+     */
+    public function replace(CartItem $item): void
+    {
+        $isExistingItem = $this->has($item);
+        
+        $content = $this->content();
+        $content->put($item->getHash(), $item);
+        $this->session->put("{$this->instance}.items", $content);
+
+        if ($isExistingItem) {
+            event(new ItemReplaced($this->getInstance(), $item));
+        } else {
+            event(new ItemAdded($this->getInstance(), $item));
+        }
     }
 
     /**

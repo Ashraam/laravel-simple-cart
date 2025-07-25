@@ -73,8 +73,11 @@ $cartModifier = new CartModifier(
     type: CartModifier::VALUE
 );
 
-// Add an item to the cart
+// Add an item to the cart (increments quantity if item exists)
 Cart::add($item);
+
+// Replace an item in the cart (completely replaces existing item or adds new)
+Cart::replace($item);
 
 // Applying a modifier to the cart
 Cart::modifiers()->add($cartModifier);
@@ -93,6 +96,74 @@ $vat = Cart::vat(); // 12
 
 // Get the total of the cart (items with vat + cart modifiers)
 $total = Cart::total(); // 82
+```
+
+## Item Management
+
+### Adding vs Replacing Items
+
+Understanding the difference between `add()` and `replace()` methods:
+
+```php
+// Using add() - increments quantity if item exists
+$item = new CartItem('product-1', 'T-Shirt', 25, 2);
+Cart::add($item); // Cart now has 2 items
+
+$sameItem = new CartItem('product-1', 'T-Shirt', 25, 3);
+Cart::add($sameItem); // Cart now has 5 items (2 + 3)
+
+// Using replace() - completely replaces existing item
+$item = new CartItem('product-1', 'T-Shirt', 25, 2);
+Cart::add($item); // Cart now has 2 items
+
+$updatedItem = new CartItem('product-1', 'Updated T-Shirt', 30, 1);
+Cart::replace($updatedItem); // Cart now has 1 item with updated data
+
+// replace() also works for adding new items
+$newItem = new CartItem('product-2', 'Hoodie', 45, 1);
+Cart::replace($newItem); // Adds the new item since it doesn't exist
+```
+
+### Common Use Cases for replace()
+
+**Updating item properties with same ID+options:**
+```php
+// User adds item to cart with specific options
+$originalItem = new CartItem(
+    id: 'product-1', 
+    name: 'Basic T-Shirt', 
+    price: 25, 
+    quantity: 1,
+    options: ['size' => 'M', 'color' => 'blue']
+);
+Cart::add($originalItem);
+
+// Later, user wants to update quantity and price but keep same variant
+$updatedItem = new CartItem(
+    id: 'product-1',
+    name: 'Premium T-Shirt', // Updated name
+    price: 35,               // Updated price
+    quantity: 3,             // Updated quantity
+    options: ['size' => 'M', 'color' => 'blue'] // Same options = same hash
+);
+
+// Use replace() to update the existing item completely
+Cart::replace($updatedItem); // Replaces existing item with new data
+```
+
+**Switching between variants (different hashes):**
+```php
+// User adds size M to cart
+$originalItem = new CartItem('tshirt-1', 'T-Shirt', 25, 2, options: ['size' => 'M']);
+Cart::add($originalItem);
+
+// User decides to switch to size L instead
+// First remove the M size
+Cart::remove($originalItem);
+
+// Then add the L size
+$newVariant = new CartItem('tshirt-1', 'T-Shirt', 25, 2, options: ['size' => 'L']);
+Cart::add($newVariant);
 ```
 
 ## Modifiers
@@ -117,6 +188,7 @@ The package dispatches several events to allow you to hook into the cart's lifec
 | Event                                                                    | Description                                       |
 |--------------------------------------------------------------------------|---------------------------------------------------|
 | `Ashraam\LaravelSimpleCart\Events\ItemAdded($instance, $item)`           | Dispatched when an item is added to the cart.     |
+| `Ashraam\LaravelSimpleCart\Events\ItemReplaced($instance, $item)`        | Dispatched when an existing item is replaced.     |
 | `Ashraam\LaravelSimpleCart\Events\ItemQuantityUpdated($instance, $item)` | Dispatched when an item's quantity is updated.    |
 | `Ashraam\LaravelSimpleCart\Events\ItemRemoved($instance)`                | Dispatched when an item is removed from the cart. |
 | `Ashraam\LaravelSimpleCart\Events\CartCleared($instance)`                | Dispatched when the cart is cleared.              |
@@ -136,8 +208,11 @@ Cart::instance('wishlist')->getInstance();
 // Get the instance name of the default cart, laravel-simple-cart.default_cart
 Cart::instance()->getInstance();
 
-// Add an item to the cart
+// Add an item to the cart (increments quantity if item exists)
 Cart::add(new \Ashraam\LaravelSimpleCart\CartItem());
+
+// Replace an existing item or add new item (completely replaces without incrementing)
+Cart::replace(new \Ashraam\LaravelSimpleCart\CartItem());
 
 // Returns the item or null by its hash.
 // You can use an instance of CartItem as a parameter.
@@ -415,6 +490,7 @@ Cart::instance(?string $instance = null): Cart
 Cart::getInstance(): string
 Cart::getSession(): SessionManager
 Cart::add(CartItem $item): void
+Cart::replace(CartItem $item): void
 Cart::get(CartItem|string $item): ?CartItem
 Cart::has(CartItem|string $item): bool
 Cart::find(string $id, array $options = []): ?CartItem
