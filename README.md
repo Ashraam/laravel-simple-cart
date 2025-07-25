@@ -7,12 +7,12 @@ Laravel Simple Cart is a lightweight, session-based shopping cart implementation
 
 ## Features
 
-- **Session-based Storage**: No database required - uses Laravel sessions
+- **Session-based Storage**: No database required. Uses Laravel sessions
 - **Item Management**: Add, remove, and update cart items with ease
 - **Product Variants**: Support for product options (size, color, etc.)
 - **Meta Data Support**: Additional item information (images, categories, descriptions)
 - **VAT Handling**: Built-in VAT calculation and management with configurable rates
-- **Modifiers System**: Fees and discounts can be applied to items or cart
+- **Modifiers System**: Fees and discounts at the cart level
 - **Multiple Cart Instances**: Support for different cart instances
 - **Price Calculations**: Automatic subtotal, VAT, fees, discounts, and total
 - **Exception Handling**: Custom exceptions for validation
@@ -65,15 +65,6 @@ $item = new CartItem(
     ]
 );
 
-// Creating a modifier that will remove 10% to an item
-$itemModifier = new CartModifier(
-    id: 'summer10',
-    name: 'Summer discount 10%',
-    description: 'My discount description',
-    value: -10,
-    type: CartModifier::PERCENT
-);
-
 // Creating a modifier that will add 10 to the cart
 $cartModifier = new CartModifier(
     id: 'shipping',
@@ -81,9 +72,6 @@ $cartModifier = new CartModifier(
     value: 10,
     type: CartModifier::VALUE
 );
-
-// Applying a modifier to an item
-$item->addModifier($itemModifier);
 
 // Add an item to the cart
 Cart::add($item);
@@ -94,17 +82,32 @@ Cart::modifiers()->add($cartModifier);
 // Get a collection of CartItem
 $items = Cart::content();
 
-// Get subtotal (items with item modifier and vat only)
-$subtotal = Cart::subtotal(); // 64.8, (((30 - 10%) * 20%) * 2)
+// Get subtotal (items with vat only without cart modifiers)
+$subtotal = Cart::subtotal(); // 72
 
 // Get the sum of all items in the cart without vat
-$subtotalWithoutVat = Cart::subtotalWithoutVat(); // 54, (30 - 10%) * 2
+$subtotalWithoutVat = Cart::subtotalWithoutVat(); // 60
 
 // Get the sum of the vat of all items in the cart
-$vat = Cart::vat(); // 10.8, ((30 - 10%) * 0.2) * 2
+$vat = Cart::vat(); // 12
 
-// Get the total of the cart (items with vat and modifiers + cart modifiers)
-$total = Cart::total(); // 74.8
+// Get the total of the cart (items with vat + cart modifiers)
+$total = Cart::total(); // 82
+```
+
+## Modifiers
+
+Modifiers can be applied to the cart by using this API:
+
+```php
+// Cart modifiers
+Cart::modifiers()->add($modifier);        // Add modifier to cart
+Cart::modifiers()->remove($modifier);     // Remove modifier from cart
+Cart::modifiers()->has($modifier);        // Check if cart has modifier
+Cart::modifiers()->get($modifier);        // Get modifier from cart
+Cart::modifiers()->content();             // Get all cart modifiers
+Cart::modifiers()->clear();               // Clear all cart modifiers
+Cart::modifiers()->total();               // Get total cart modifier value
 ```
 
 ## Events
@@ -168,7 +171,7 @@ Cart::content();
 // Clears the cart from its items and modifiers
 Cart::clear();
 
-// Returns the sum of all items without vat (item's modifiers will be included)
+// Returns the sum of all items without vat
 Cart::subtotalWithoutVat();
 
 // Returns the sum of all items with vat
@@ -186,6 +189,7 @@ Cart::empty();
 // Returns the total quantity of items in the cart
 Cart::count();
 ```
+
 You can apply modifiers to the cart using this api:
 
 ```php
@@ -273,25 +277,13 @@ $item->getOptions(); // Returns the option array
 $item->setOptions(['color' => 'red'], overwrite: false); // Merges or overwrites the option
 $item->getMeta(); // Returns the meta array
 $item->setMeta(['desc' => 'y desc'], overwrite: false); // Merges or overwrites the meta
-$item->unitPriceWithoutVat(); // 30, base price with modifiers but without vat
+$item->unitPriceWithoutVat(); // 30, base price without vat
 $item->vat(); // 3
-$item->unitPrice(); // 33, base price with modifiers and vat
+$item->unitPrice(); // 33, base price with vat
 $item->totalWithoutVat() // 60
 $item->vatTotal() // 6
 $item->total() // 66
-$item->addModifier(new \Ashraam\LaravelSimpleCart\CartModifier()); // Adds a modifier to the item. You can use the modifier instance or modifier id
-$item->removeModifier(new \Ashraam\LaravelSimpleCart\CartModifier()); // Removes a modifier to the item. You can use the modifier instance or modifier id
-$item->hasModifier(new \Ashraam\LaravelSimpleCart\CartModifier()); // Checks if a modifier is applied to the item. You can use the modifier instance or modifier id
-$item->getModifier(new \Ashraam\LaravelSimpleCart\CartModifier()); // Returns a CartModifier instance or null. You can use the modifier instance or modifier id
-$item->getModifiers(); // Returns an array of all modifiers applied to the item
-$item->clearModifiers(); // Remove all modifiers from the item
 ```
-
-### Price calculations order
-
-1. first we calculate each item's price with item's modifiers applied
-2. Then we add for each item its vat (if any)
-3. Then we apply all cart modifiers
 
 ## Configuration
 
@@ -413,10 +405,6 @@ Cart::instance('wishlist')->add($item);
 Cart::instance('compare')->add($item);
 ```
 
-## Real-World Examples
-
-For comprehensive real-world examples including e-commerce checkout workflows, Laravel model integration, and practical implementations, see [EXAMPLES.md](EXAMPLES.md).
-
 ## API Reference
 
 ### Complete Method Signatures
@@ -468,12 +456,6 @@ $item->unitPrice(): float
 $item->totalWithoutVat(): float
 $item->vatTotal(): float
 $item->total(): float
-$item->addModifier(CartModifier $modifier): void
-$item->removeModifier(CartModifier|string $modifier): void
-$item->hasModifier(CartModifier|string $modifier): bool
-$item->getModifier(CartModifier|string $modifier): ?CartModifier
-$item->getModifiers(): Collection
-$item->clearModifiers(): void
 
 // CartModifier Class Methods
 new CartModifier(string $id, string $name, float $value, string $type = CartModifier::VALUE, ?string $description = null)
@@ -488,7 +470,8 @@ $modifier->setType(string $type): void
 $modifier->getDescription(): ?string
 $modifier->setDescription(string $description): void
 
-// Modifiers Class Methods
+// ModifierManagerInterface Methods (Cart and CartItem modifiers)
+// Available via Cart::modifiers() and $item->modifiers()
 $modifiers->content(): Collection
 $modifiers->get(CartModifier|string $modifier): ?CartModifier
 $modifiers->has(CartModifier|string $modifier): bool

@@ -17,7 +17,6 @@ class CartItem
     private ?float $vat_rate;
     private array $options;
     private array $meta;
-    private array $modifiers;
 
     public function __construct(
         string $id,
@@ -59,7 +58,6 @@ class CartItem
         $this->vat_rate = $vat_rate ?? Config::get('laravel-simple-cart.default_vat_rate');
         $this->options = $options;
         $this->meta = $meta;
-        $this->modifiers = [];
         $this->hash = $this->generateHash();
     }
 
@@ -118,7 +116,7 @@ class CartItem
     }
 
     /**
-     * Returns the item's base price (without VAT and modifiers)
+     * Returns the item's base price (without VAT)
      *
      * @return float
      */
@@ -268,28 +266,27 @@ class CartItem
     }
 
     /**
-     * Returns the unit price without vat but with item's modifiers
+     * Returns the unit price without vat
      *
      * @return float
      */
     public function unitPriceWithoutVat(): float
     {
-        return $this->getPriceWithModifiers() / 100;
+        return $this->price / 100;
     }
 
     /**
      * Returns the vat amount for a single item
-     * The vat is calculated with the modifiers applied to the item
      *
      * @return float
      */
     public function vat(): float
     {
-        return ($this->getPriceWithModifiers() * ($this->vat_rate / 100)) / 100;
+        return ($this->price * ($this->vat_rate / 100)) / 100;
     }
 
     /**
-     * Returns the unit price of the item with vat and item's modifiers
+     * Returns the unit price of the item with vat
      *
      * @return float
      */
@@ -299,7 +296,7 @@ class CartItem
     }
 
     /**
-     * Returns the total price of the item without vat but with item's modifiers
+     * Returns the total price of the item without vat
      *
      * @return float
      */
@@ -319,7 +316,7 @@ class CartItem
     }
 
     /**
-     * Returns the total price of this item (with vat and modifiers included)
+     * Returns the total price of this item (with vat included)
      *
      * @return float
      */
@@ -328,87 +325,6 @@ class CartItem
         return $this->unitPrice() * $this->quantity;
     }
 
-    /**
-     * Add a modifier to this cart item
-     *
-     * @param  CartModifier  $modifier
-     * @return void
-     */
-    public function addModifier(CartModifier $modifier): void
-    {
-        $this->modifiers[$modifier->getId()] = $modifier;
-    }
-
-    /**
-     * Remove a modifier from this cart item
-     *
-     * @param  CartModifier|string  $modifier
-     * @return void
-     */
-    public function removeModifier(CartModifier|string $modifier): void
-    {
-        if ($modifier instanceof CartModifier) {
-            $id = $modifier->getId();
-        } else {
-            $id = $modifier;
-        }
-
-        unset($this->modifiers[$id]);
-    }
-
-    /**
-     * Check if this cart item has a specific modifier
-     *
-     * @param  CartModifier|string  $modifier
-     * @return bool
-     */
-    public function hasModifier(CartModifier|string $modifier): bool
-    {
-        if ($modifier instanceof CartModifier) {
-            $id = $modifier->getId();
-        } else {
-            $id = $modifier;
-        }
-
-        return array_key_exists($id, $this->modifiers);
-    }
-
-    /**
-     * Get a specific modifier from this cart item
-     *
-     * @param  CartModifier|string  $modifier
-     * @return CartModifier|null
-     */
-    public function getModifier(CartModifier|string $modifier): ?CartModifier
-    {
-        if ($modifier instanceof CartModifier) {
-            $id = $modifier->getId();
-        } else {
-            $id = $modifier;
-        }
-
-        return $this->modifiers[$id] ?? null;
-    }
-
-    /**
-     * Get all modifiers for this cart item
-     *
-     * @return Collection
-     */
-    public function getModifiers(): Collection
-    {
-        return collect($this->modifiers);
-    }
-
-    /**
-     * Clear all modifiers from this cart item
-     *
-     * @return void
-     */
-    public function clearModifiers(): void
-    {
-        $this->modifiers = [];
-    }
 
     /**
      * Generates the item's hash
@@ -418,24 +334,5 @@ class CartItem
     private function generateHash(): string
     {
         return md5($this->id.serialize($this->options));
-    }
-
-    /**
-     * Returns the unit price of the item in cents with modifiers applied to it
-     *
-     * @return int
-     */
-    private function getPriceWithModifiers(): int
-    {
-        $price = $this->price;
-        $modifiers = $this->getModifiers()->sum(function ($modifier) use ($price) {
-            if ($modifier->getType() === CartModifier::PERCENT) {
-                return $price * ($modifier->getRawValue() / 100);
-            }
-
-            return $modifier->getRawValue();
-        });
-
-        return $price + $modifiers;
     }
 }

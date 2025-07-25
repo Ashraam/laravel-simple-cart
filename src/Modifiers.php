@@ -2,10 +2,11 @@
 
 namespace Ashraam\LaravelSimpleCart;
 
+use Ashraam\LaravelSimpleCart\Contracts\ModifierManagerInterface;
 use Illuminate\Session\SessionManager;
 use Illuminate\Support\Collection;
 
-class Modifiers
+class Modifiers implements ModifierManagerInterface
 {
     private Cart $cart;
     private string $instance;

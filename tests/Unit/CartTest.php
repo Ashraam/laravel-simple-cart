@@ -567,28 +567,83 @@ test('it returns the total vat amount', function () {
     expect($this->cart->vat())->toEqual(16);
 });
 
-test('it calculates correctly a cart with modifiers and vat', function() {
-    $item1 = new CartItem('product-1', 'Product 1', 60, 1, vat_rate: 10); // 50 x 0.2 = 10
-    $item2 = new CartItem('product-2', 'Product 2', 100, 3, vat_rate: 20); // 36 x 0.2 = 6
+test('cart handles very large quantities', function () {
+    $item = new CartItem('bulk-item', 'Bulk Item', 0.01, 999999);
+    $this->cart->add($item);
 
-    $mod1 = new CartModifier('discount', '10% Discount', -10, CartModifier::PERCENT);
-    $mod2 = new CartModifier('shipping', 'Shipping', 10, CartModifier::VALUE);
-    $mod3 = new CartModifier('rebates', 'Special item promotion', -10, CartModifier::VALUE);
+    expect($this->cart->count())->toEqual(999999)
+        ->and($this->cart->subtotal())->toEqual(9999.99);
+});
 
-    $item1->addModifier($mod3);
+test('cart handles very large prices', function () {
+    $expensiveItem = new CartItem('luxury-item', 'Luxury Item', 999999.99, 1);
+    $this->cart->add($expensiveItem);
 
-    $this->cart->add($item1);
-    $this->cart->add($item2);
+    expect($this->cart->subtotal())->toEqual(999999.99);
+});
 
-    $this->cart->modifiers()->add($mod1);
-    $this->cart->modifiers()->add($mod2);
+test('cart modifiers do not affect VAT calculations', function () {
+    $item = new CartItem('product-1', 'Product', 100, 1, vat_rate: 20);
+    $this->cart->add($item);
 
-    expect($this->cart->subtotalWithoutVat())
-        ->toEqual(350) // (60 - 10) + (100 * 3)
-        ->and($this->cart->vat())
-        ->toEqual(65) // ((60 -10) * 0.1) + ((100 * 0.2) * 3)
-        ->and($this->cart->subtotal())
-        ->toEqual(415) // ((60 - 10) + 10%) + ((100 + 20%) * 3)
-        ->and($this->cart->total())
-        ->toEqual(383.5); // 415 - (415 * 0.1) + 10
+    $cartDiscount = new CartModifier('cart-discount', 'Cart Discount', -10, CartModifier::VALUE);
+    $this->cart->modifiers()->add($cartDiscount);
+
+    // Item VAT calculated before cart modifiers
+    expect($this->cart->vat())->toEqual(20)
+        ->and($this->cart->subtotal())->toEqual(120)
+        ->and($this->cart->total())->toEqual(110);
+    // VAT on 100
+    // 100 + 20 VAT
+    // 120 - 10 cart discount
+});
+
+test('mixed cart instances maintain modifier isolation', function () {
+    $item = new CartItem('product-1', 'Product', 100, 1);
+
+    $cart1Discount = new CartModifier('discount1', 'Cart 1 Discount', -10, CartModifier::VALUE);
+    $cart2Discount = new CartModifier('discount2', 'Cart 2 Discount', -20, CartModifier::VALUE);
+
+    $this->cart->instance('cart1')->add($item);
+    $this->cart->instance('cart1')->modifiers()->add($cart1Discount);
+
+    $this->cart->instance('cart2')->add($item);
+    $this->cart->instance('cart2')->modifiers()->add($cart2Discount);
+
+    expect($this->cart->instance('cart1')->total())->toEqual(90)
+        ->and($this->cart->instance('cart2')->total())->toEqual(80)
+        ->and($this->cart->instance('cart1')->modifiers()->has($cart1Discount))->toBeTrue()
+        ->and($this->cart->instance('cart1')->modifiers()->has($cart2Discount))->toBeFalse()
+        ->and($this->cart->instance('cart2')->modifiers()->has($cart2Discount))->toBeTrue()
+        ->and($this->cart->instance('cart2')->modifiers()->has($cart1Discount))->toBeFalse();
+
+});
+
+test('cart handles floating point precision correctly', function () {
+    $item = new CartItem('product-1', 'Product', 10.99, 3);
+    $this->cart->add($item);
+
+    $discount = new CartModifier('discount', '10% Discount', -10, CartModifier::PERCENT);
+    $this->cart->modifiers()->add($discount);
+
+    // Should handle floating point arithmetic correctly
+    expect($this->cart->subtotal())->toEqual(32.97)
+        ->and($this->cart->modifiers()->total())->toEqual(-3.297)
+        ->and($this->cart->total())->toEqual(29.673);
+    // 10.99 * 3
+    // 10% of 32.97
+    // 32.97 - 3.297
+});
+
+test('cart handles extreme modifier combinations', function () {
+    $item = new CartItem('product-1', 'Product', 100, 1);
+    $this->cart->add($item);
+
+    // Add multiple extreme modifiers
+    $this->cart->modifiers()->add(new CartModifier('huge-discount', 'Huge Discount', -99, CartModifier::PERCENT));
+    $this->cart->modifiers()->add(new CartModifier('small-fee', 'Small Fee', 0.01, CartModifier::VALUE));
+    $this->cart->modifiers()->add(new CartModifier('another-discount', 'Another Discount', -50, CartModifier::VALUE));
+
+    // Should not go below 0
+    expect($this->cart->total())->toEqual(0);
 });
