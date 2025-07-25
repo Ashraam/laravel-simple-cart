@@ -3,7 +3,7 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/ashraam/laravel-simple-cart.svg?style=flat-square)](https://packagist.org/packages/ashraam/laravel-simple-cart)
 [![Total Downloads](https://img.shields.io/packagist/dt/ashraam/laravel-simple-cart.svg?style=flat-square)](https://packagist.org/packages/ashraam/laravel-simple-cart)
 
-Laravel Simple Cart is a lightweight, session-based shopping cart implementation designed specifically for Laravel 12 applications. It provides a simple yet comprehensive solution for adding e-commerce cart functionality without requiring database storage.
+Laravel Simple Cart is a lightweight, session-based shopping cart implementation designed specifically for Laravel 10/11/12 applications. It provides a simple yet comprehensive solution for adding e-commerce cart functionality without requiring database storage.
 
 ## Features
 
@@ -17,7 +17,7 @@ Laravel Simple Cart is a lightweight, session-based shopping cart implementation
 - **Price Calculations**: Automatic subtotal, VAT, fees, discounts, and total
 - **Exception Handling**: Custom exceptions for validation
 - **Well Tested**: Comprehensive test suite with Pest PHP
-- **Laravel 12 Compatible**: Built for the latest Laravel version
+- **Laravel 10/11/12 Compatible**: Built for the latest Laravel version
 
 ## Installation
 
