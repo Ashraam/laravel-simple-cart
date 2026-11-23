@@ -1,6 +1,6 @@
 {
     "name": "ashraam/laravel-simple-cart",
-    "description": "Simple session based cart for Laravel 12",
+    "description": "Simple session based cart for Laravel 10, 11, 12 and 13",
     "keywords": [
         "ashraam",
         "cart",
@@ -19,9 +19,9 @@
     ],
     "require": {
         "php": "^8.2",
-        "illuminate/session": "^10.0|^11.0|^12.0",
-        "illuminate/support": "^10.0|^11.0|^12.0",
-        "illuminate/events": "^10.0|^11.0|^12.0"
+        "illuminate/session": "^10.0|^11.0|^12.0|^13.0",
+        "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
+        "illuminate/events": "^10.0|^11.0|^12.0|^13.0"
     },
     "autoload": {
         "psr-4": {
@@ -56,8 +56,8 @@
     "prefer-stable": true,
     "require-dev": {
         "mockery/mockery": "^1.6",
-        "orchestra/testbench": "^8.0|^9.0|^10.0",
-        "pestphp/pest": "^3.7"
+        "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
+        "pestphp/pest": "^3.7|^4.0"
     },
     "scripts": {
         "post-autoload-dump": [
